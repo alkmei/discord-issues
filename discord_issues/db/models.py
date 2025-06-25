@@ -33,10 +33,8 @@ class Guild(Base):
     __tablename__ = "guilds"
     guild_id = Column(String, primary_key=True, autoincrement=False)
 
-    issues = relationship("Issue", back_populates="guild", cascade="all, delete-orphan")
-    tags = relationship("Tag", back_populates="guild", cascade="all, delete-orphan")
-    statuses = relationship(
-        "Status", back_populates="guild", cascade="all, delete-orphan"
+    projects = relationship(
+        "Project", back_populates="guild", cascade="all, delete-orphan"
     )
 
 
@@ -49,6 +47,25 @@ class User(Base):
     )
     assigned_issues = relationship(
         "Issue", secondary=issue_assignees, back_populates="assignees"
+    )
+
+
+class Project(Base):
+    __tablename__ = "projects"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+
+    guild_id = Column(String, ForeignKey("guilds.guild_id"), nullable=False)
+    guild = relationship("Guild", back_populates="projects")
+
+    # A project is the new parent for issues, tags, and statuses
+    issues = relationship(
+        "Issue", back_populates="project", cascade="all, delete-orphan"
+    )
+    tags = relationship("Tag", back_populates="project", cascade="all, delete-orphan")
+    statuses = relationship(
+        "Status", back_populates="project", cascade="all, delete-orphan"
     )
 
 
@@ -84,15 +101,15 @@ class Issue(Base):
     description = Column(Text, nullable=True)
 
     status_id = Column(Integer, ForeignKey("statuses.id"), nullable=False)
-
-    guild_id = Column(String, ForeignKey("guilds.guild_id"), nullable=False)
     creator_id = Column(String, ForeignKey("users.user_id"), nullable=False)
+
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
 
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     closed_at = Column(DateTime, nullable=True)
 
-    guild = relationship("Guild", back_populates="issues")
+    project = relationship("Project", back_populates="issues")
     creator = relationship(
         "User", foreign_keys=creator_id, back_populates="created_issues"
     )

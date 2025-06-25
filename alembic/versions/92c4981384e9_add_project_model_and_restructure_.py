@@ -1,8 +1,8 @@
-"""Create initial tables
+"""Add project model and restructure relationships
 
-Revision ID: 072bc2824b80
+Revision ID: 92c4981384e9
 Revises: 
-Create Date: 2025-06-25 01:13:06.864382
+Create Date: 2025-06-25 01:41:50.154026
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '072bc2824b80'
+revision: str = '92c4981384e9'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -28,6 +28,14 @@ def upgrade() -> None:
     op.create_table('users',
     sa.Column('user_id', sa.String(), autoincrement=False, nullable=False),
     sa.PrimaryKeyConstraint('user_id')
+    )
+    op.create_table('projects',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(length=100), nullable=False),
+    sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('guild_id', sa.String(), nullable=False),
+    sa.ForeignKeyConstraint(['guild_id'], ['guilds.guild_id'], ),
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_table('statuses',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -51,13 +59,13 @@ def upgrade() -> None:
     sa.Column('title', sa.String(length=255), nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
     sa.Column('status_id', sa.Integer(), nullable=False),
-    sa.Column('guild_id', sa.String(), nullable=False),
     sa.Column('creator_id', sa.String(), nullable=False),
+    sa.Column('project_id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
     sa.Column('closed_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['creator_id'], ['users.user_id'], ),
-    sa.ForeignKeyConstraint(['guild_id'], ['guilds.guild_id'], ),
+    sa.ForeignKeyConstraint(['project_id'], ['projects.id'], ),
     sa.ForeignKeyConstraint(['status_id'], ['statuses.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -86,6 +94,7 @@ def downgrade() -> None:
     op.drop_table('issues')
     op.drop_table('tags')
     op.drop_table('statuses')
+    op.drop_table('projects')
     op.drop_table('users')
     op.drop_table('guilds')
     # ### end Alembic commands ###
