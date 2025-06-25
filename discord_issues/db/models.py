@@ -106,7 +106,7 @@ class Tag(Base):
 class Issue(Base):
     __tablename__ = "issues"
     id = Column(Integer, primary_key=True)
-    guild_issue_id = Column(Integer, nullable=False)
+    project_issue_id = Column(Integer, nullable=False)
 
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)

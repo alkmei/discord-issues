@@ -1,20 +1,72 @@
+from typing import Optional
+from sqlalchemy import func
+from discord_issues.db.models import Issue, Project, Tag, User, Status
 from .base_repository import BaseRepository
-from discord_issues.db.models import Issue, User
 
 
 class IssueRepository(BaseRepository[Issue]):
     def __init__(self):
         super().__init__(Issue)
 
-    def find_open_issues_for_user(self, user: User) -> list[Issue]:
+    def get_next_project_issue_id(self, project_id: int, session) -> int:
         """
-        An example of a custom method that goes beyond basic CRUD.
+        Calculates the next available issue ID for a given project.
+        This should be called within an active session.
+        """
+        max_id = (
+            session.query(func.max(self.model.project_issue_id))
+            .filter(self.model.project_id == project_id)
+            .scalar()
+        )
+        return (max_id or 0) + 1
+
+    def find_by_project_issue_id(
+        self, project_id: int, project_issue_id: int
+    ) -> Optional[Issue]:
+        """
+        Finds a single issue by its user-facing ID within a specific project.
+        e.g., finds issue #12 in project with id=1.
         """
         with self.session_factory() as session:
             return (
                 session.query(self.model)
-                .filter(
-                    self.model.assignees.contains(user), self.model.status == "Open"
-                )
-                .all()
+                .filter_by(project_id=project_id, project_issue_id=project_issue_id)
+                .first()
             )
+
+    def create_issue(
+        self,
+        project: Project,
+        creator: User,
+        title: str,
+        description: str,
+        initial_status: Status,
+        assignees: list[User] = None,
+        tags: list[Tag] = None,
+    ) -> Issue:
+        """
+        Creates a new issue and handles all its relationships.
+        """
+        with self.session_factory() as session:
+            with session.begin():
+                next_id = self.get_next_project_issue_id(project.id, session)
+
+                new_issue = Issue(
+                    project_issue_id=next_id,
+                    title=title,
+                    description=description,
+                    project_id=project.id,
+                    creator_id=creator.user_id,
+                    status_id=initial_status.id,
+                )
+
+                if assignees:
+                    new_issue.assignees.extend(assignees)
+
+                if tags:
+                    new_issue.tags.extend(tags)
+
+                session.add(new_issue)
+
+            session.refresh(new_issue)
+            return new_issue
