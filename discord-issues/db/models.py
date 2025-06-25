@@ -1,0 +1,104 @@
+from sqlalchemy import (
+    Column,
+    String,
+    Integer,
+    ForeignKey,
+    DateTime,
+    func,
+    Enum,
+    Table,
+    Text,
+)
+from sqlalchemy.orm import declarative_base, relationship
+
+Base = declarative_base()
+
+
+issue_tags = Table(
+    "issue_tags",
+    Base.metadata,
+    Column("issue_id", Integer, ForeignKey("issues.id"), primary_key=True),
+    Column("tag_id", Integer, ForeignKey("tags.id"), primary_key=True),
+)
+
+issue_assignees = Table(
+    "issue_assignees",
+    Base.metadata,
+    Column("issue_id", Integer, ForeignKey("issues.id"), primary_key=True),
+    Column("user_id", String, ForeignKey("users.user_id"), primary_key=True),
+)
+
+
+class Guild(Base):
+    __tablename__ = "guilds"
+    guild_id = Column(String, primary_key=True, autoincrement=False)
+
+    issues = relationship("Issue", back_populates="guild", cascade="all, delete-orphan")
+    tags = relationship("Tag", back_populates="guild", cascade="all, delete-orphan")
+    statuses = relationship(
+        "Status", back_populates="guild", cascade="all, delete-orphan"
+    )
+
+
+class User(Base):
+    __tablename__ = "users"
+    user_id = Column(String, primary_key=True, autoincrement=False)
+
+    created_issues = relationship(
+        "Issue", foreign_keys="[Issue.creator_id]", back_populates="creator"
+    )
+    assigned_issues = relationship(
+        "Issue", secondary=issue_assignees, back_populates="assignees"
+    )
+
+
+class Status(Base):
+    __tablename__ = "statuses"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(50), nullable=False)
+    description = Column(String(255), nullable=True)
+    category = Column(
+        Enum("OPEN", "CLOSED", name="status_category_enum"), nullable=False
+    )
+
+    guild_id = Column(String, ForeignKey("guilds.guild_id"), nullable=False)
+    guild = relationship("Guild", back_populates="statuses")
+
+
+class Tag(Base):
+    __tablename__ = "tags"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(50), nullable=False)
+    guild_id = Column(String, ForeignKey("guilds.guild_id"), nullable=False)
+
+    guild = relationship("Guild", back_populates="tags")
+    issues = relationship("Issue", secondary=issue_tags, back_populates="tags")
+
+
+class Issue(Base):
+    __tablename__ = "issues"
+    id = Column(Integer, primary_key=True)
+    guild_issue_id = Column(Integer, nullable=False)
+
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+
+    status_id = Column(Integer, ForeignKey("statuses.id"), nullable=False)
+
+    guild_id = Column(String, ForeignKey("guilds.guild_id"), nullable=False)
+    creator_id = Column(String, ForeignKey("users.user_id"), nullable=False)
+
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    closed_at = Column(DateTime, nullable=True)
+
+    guild = relationship("Guild", back_populates="issues")
+    creator = relationship(
+        "User", foreign_keys=creator_id, back_populates="created_issues"
+    )
+
+    status = relationship("Status")
+    assignees = relationship(
+        "User", secondary=issue_assignees, back_populates="assigned_issues"
+    )
+    tags = relationship("Tag", secondary=issue_tags, back_populates="issues")
