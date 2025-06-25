@@ -8,10 +8,21 @@ from sqlalchemy import (
     Enum,
     Table,
     Text,
+    MetaData,
 )
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import relationship, DeclarativeBase
 
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    metadata = MetaData(
+        naming_convention={
+            "ix": "ix_%(column_0_label)s",
+            "uq": "uq_%(table_name)s_%(column_0_name)s",
+            "ck": "ck_%(table_name)s_`%(constraint_name)s`",
+            "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+            "pk": "pk_%(table_name)s",
+        }
+    )
 
 
 issue_tags = Table(
@@ -78,17 +89,17 @@ class Status(Base):
         Enum("OPEN", "CLOSED", name="status_category_enum"), nullable=False
     )
 
-    guild_id = Column(String, ForeignKey("guilds.guild_id"), nullable=False)
-    guild = relationship("Guild", back_populates="statuses")
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    project = relationship("Project", back_populates="statuses")
 
 
 class Tag(Base):
     __tablename__ = "tags"
     id = Column(Integer, primary_key=True)
     name = Column(String(50), nullable=False)
-    guild_id = Column(String, ForeignKey("guilds.guild_id"), nullable=False)
 
-    guild = relationship("Guild", back_populates="tags")
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    project = relationship("Project", back_populates="tags")
     issues = relationship("Issue", secondary=issue_tags, back_populates="tags")
 
 
