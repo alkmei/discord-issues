@@ -48,7 +48,7 @@ class BaseRepository(Generic[ModelType]):
         with self.session_factory() as session:
             return session.query(self.model).offset(skip).limit(limit).all()
 
-    def create(self, **kwargs) -> ModelType:
+    def create(self, **kwargs: Any) -> ModelType:
         """
         Creates a new record in the database.
 
@@ -67,7 +67,7 @@ class BaseRepository(Generic[ModelType]):
             session.refresh(db_obj)
             return db_obj
 
-    def update(self, pk: Any, **kwargs) -> Optional[ModelType]:
+    def update(self, pk: Any, **kwargs: Any) -> Optional[ModelType]:
         """
         Updates an existing record identified by its primary key.
 

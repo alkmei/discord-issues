@@ -11,3 +11,4 @@ wheels/
 .idea
 
 db.sqlite3
+.env
