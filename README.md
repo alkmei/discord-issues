@@ -10,3 +10,7 @@ Information TBD
 alembic revision -m "initial"
 alembic upgrade head
 ```
+
+```shell
+uv run python -m discord_issues
+```

@@ -7,11 +7,11 @@ class StatusCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    Status_group = app_commands.Group(
-        name="Status", description="Commands for managing status"
+    status_group = app_commands.Group(
+        name="status", description="Commands for managing status"
     )
 
-    @Status_group.command(name="create", description="Create a new status")
+    @status_group.command(name="new", description="Create a new status")
     async def create(
         self, interaction: discord.Interaction, member: discord.Member | None = None
     ):

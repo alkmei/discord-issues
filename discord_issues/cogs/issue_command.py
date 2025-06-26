@@ -11,7 +11,7 @@ class IssueCog(commands.Cog):
         name="issue", description="Commands for managing issues"
     )
 
-    @issue_group.command(name="create", description="Create a new issue")
+    @issue_group.command(name="new", description="Create a new issue")
     async def create(
         self, interaction: discord.Interaction, member: discord.Member | None = None
     ):

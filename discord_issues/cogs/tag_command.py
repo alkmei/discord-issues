@@ -36,7 +36,6 @@ async def tag_autocomplete(
     return [
         app_commands.Choice(
             name=tag.name,
-            # CHANGED: Explicitly cast to str here as well.
             value=str(tag.name),
         )
         for tag in tags
@@ -51,7 +50,8 @@ class TagCog(commands.Cog):
     tag_group = app_commands.Group(name="tag", description="Commands for managing tags")
 
     @tag_group.command(name="new")
-    async def new(self, interaction: discord.Interaction, title: str, description: str):
+    @app_commands.autocomplete(project_name=project_autocomplete)
+    async def new(self, interaction: discord.Interaction, project_name: str, name: str):
         await interaction.response.defer()
         await interaction.followup.send("Hello")
 
