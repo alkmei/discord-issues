@@ -23,6 +23,7 @@ External issue trackers like Trello are simpler for non-developers, but I found 
 Creates a new issue in the tracker. This is the primary command for reporting bugs or suggesting features.
 
 **Syntax:** `/issue create <title> [description] [assignee] [tags]`
+
 - **`title`** (Required String): A short, descriptive title for the issue.
 - **`description`** (Optional String): A more detailed explanation of the issue. Users can provide steps to reproduce, context, or any relevant information.
 - **`assignee`** (Optional User): The team member you want to assign the issue to. You can @mention the user here.
@@ -33,14 +34,15 @@ Creates a new issue in the tracker. This is the primary command for reporting bu
 Displays the full details of a single issue, including its title, description, status, assignee, and tags.
 
 **Syntax**: `/issue view <id>`
-- **`id`** (Required Integer): The unique ID number of the issue you want to view.
 
+- **`id`** (Required Integer): The unique ID number of the issue you want to view.
 
 #### `list`
 
 Shows a list of all currently open issues. This command includes optional filters to help users find specific tasks.
 
 **Syntax**: `/issue list [assignee] [status] [tag]`
+
 - **`assignee`** (Optional User): Filters the list to show only issues assigned to a specific member.
 - **`status`** (Optional String): Filters by status. For example, you could filter for "open", "in-progress", or "resolved".
 - **`tag`** (Optional String): Filters the list to show only issues that include a specific tag.
@@ -52,6 +54,7 @@ Shows a list of all currently open issues. This command includes optional filter
 Allows a user to modify the details of an existing issue.
 
 **Syntax**: `/issue edit <id> [title] [description]`
+
 - **`id`** (Required Integer): The ID of the issue to be modified.
 - **`title`** (Optional String): A new title for the issue.
 - **`description`** (Optional String): A new description for the issue.
@@ -61,13 +64,16 @@ Allows a user to modify the details of an existing issue.
 Assigns or re-assigns an issue to a different user.
 
 **Syntax**: `/issue assign <id> <user>`
+
 - **`id`** (Required Integer): The ID of the issue to be assigned.
 - **`user`** (Required User): The member to assign the issue to.
 
 #### `unassign`
+
 Remove user from assignment.
 
 **Syntax:** `/issue unassign <id> <user>`
+
 - **`id`** (Required Integer): The ID of the issue.
 - **`user`** (Required User): Member that is assigned to the issue.
 
@@ -76,6 +82,7 @@ Remove user from assignment.
 Closes an issue, typically when the bug has been fixed or the feature has been implemented. This marks the task as complete.
 
 **Syntax**: `/issue close <id> [reason]`
+
 - **`id`** (Required Integer): The ID of the issue to close.
 - **`reason`** (Optional String): A brief comment about the resolution (e.g., "Fixed in patch 1.1.2").
 
@@ -86,6 +93,7 @@ Closes an issue, typically when the bug has been fixed or the feature has been i
 Create a tag.
 
 **Syntax:** `/tag create <name>`
+
 - `name` (Required String): Name of tag.
 
 #### `delete`
@@ -93,6 +101,7 @@ Create a tag.
 Delete a tag. Removes tag from issue if existing.
 
 **Syntax:** `/tag delete <name>`
+
 - `name` (Required String): Name of tag to remove.
 
 #### `list`
@@ -100,6 +109,24 @@ Delete a tag. Removes tag from issue if existing.
 List all tags.
 
 **Syntax:** `/tag list`
+
+### Status
+
+#### `new`
+
+Create a new status.
+
+**Syntax:** `/status new <name>`
+
+- `name` (Required String): Name of tag.
+
+#### `delete`
+
+Delete a status. Removes tag from issue if existing.
+
+**Syntax:** `/status delete <name>`
+
+- `name` (Required String): Name of tag to remove.
 
 ## Database Design
 

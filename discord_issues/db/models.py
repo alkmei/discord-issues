@@ -1,19 +1,24 @@
+import datetime
+import enum
+from typing import List, Optional
+
 from sqlalchemy import (
     Column,
-    String,
-    Integer,
+    Enum as SQLAlchemyEnum,
     ForeignKey,
-    DateTime,
-    func,
-    Enum,
+    Integer,
+    MetaData,
+    String,
     Table,
     Text,
-    MetaData,
+    func,
 )
-from sqlalchemy.orm import relationship, DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
+    """Base class with naming convention for all models."""
+
     metadata = MetaData(
         naming_convention={
             "ix": "ix_%(column_0_label)s",
@@ -25,6 +30,7 @@ class Base(DeclarativeBase):
     )
 
 
+# --- Junction Tables for Many-to-Many Relationships ---
 issue_tags = Table(
     "issue_tags",
     Base.metadata,
@@ -36,97 +42,110 @@ issue_assignees = Table(
     "issue_assignees",
     Base.metadata,
     Column("issue_id", Integer, ForeignKey("issues.id"), primary_key=True),
-    Column("user_id", String, ForeignKey("users.user_id"), primary_key=True),
+    Column("user_id", Integer, ForeignKey("users.user_id"), primary_key=True),
 )
 
 
+# --- Python Enum for Status Categories ---
+class StatusCategory(enum.Enum):
+    OPEN = "OPEN"
+    CLOSED = "CLOSED"
+
+
+# --- Declarative Models ---
 class Guild(Base):
     __tablename__ = "guilds"
-    guild_id = Column(String, primary_key=True, autoincrement=False)
+    guild_id: Mapped[str] = mapped_column(primary_key=True, autoincrement=False)
 
-    projects = relationship(
-        "Project", back_populates="guild", cascade="all, delete-orphan"
+    projects: Mapped[List["Project"]] = relationship(
+        back_populates="guild", cascade="all, delete-orphan"
     )
 
 
 class User(Base):
     __tablename__ = "users"
-    user_id = Column(String, primary_key=True, autoincrement=False)
+    user_id: Mapped[str] = mapped_column(primary_key=True, autoincrement=False)
 
-    created_issues = relationship(
-        "Issue", foreign_keys="[Issue.creator_id]", back_populates="creator"
+    created_issues: Mapped[List["Issue"]] = relationship(
+        foreign_keys="[Issue.creator_id]", back_populates="creator"
     )
-    assigned_issues = relationship(
-        "Issue", secondary=issue_assignees, back_populates="assignees"
+    assigned_issues: Mapped[List["Issue"]] = relationship(
+        secondary=issue_assignees, back_populates="assignees"
     )
 
 
 class Project(Base):
     __tablename__ = "projects"
-    id = Column(Integer, primary_key=True)
-    name = Column(String(100), nullable=False)
-    description = Column(Text, nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100))
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-    guild_id = Column(String, ForeignKey("guilds.guild_id"), nullable=False)
-    guild = relationship("Guild", back_populates="projects")
+    guild_id: Mapped[str] = mapped_column(ForeignKey("guilds.guild_id"))
+    guild: Mapped["Guild"] = relationship(back_populates="projects")
 
-    # A project is the new parent for issues, tags, and statuses
-    issues = relationship(
-        "Issue", back_populates="project", cascade="all, delete-orphan"
+    issues: Mapped[List["Issue"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
     )
-    tags = relationship("Tag", back_populates="project", cascade="all, delete-orphan")
-    statuses = relationship(
-        "Status", back_populates="project", cascade="all, delete-orphan"
+    tags: Mapped[List["Tag"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
+    statuses: Mapped[List["Status"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
     )
 
 
 class Status(Base):
     __tablename__ = "statuses"
-    id = Column(Integer, primary_key=True)
-    name = Column(String(50), nullable=False)
-    description = Column(String(255), nullable=True)
-    category = Column(
-        Enum("OPEN", "CLOSED", name="status_category_enum"), nullable=False
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(50))
+    description: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    category: Mapped[StatusCategory] = mapped_column(
+        SQLAlchemyEnum(StatusCategory, name="status_category_enum")
     )
 
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
-    project = relationship("Project", back_populates="statuses")
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
+    project: Mapped["Project"] = relationship(back_populates="statuses")
 
 
 class Tag(Base):
     __tablename__ = "tags"
-    id = Column(Integer, primary_key=True)
-    name = Column(String(50), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(50))
 
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
-    project = relationship("Project", back_populates="tags")
-    issues = relationship("Issue", secondary=issue_tags, back_populates="tags")
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
+    project: Mapped["Project"] = relationship(back_populates="tags")
+
+    issues: Mapped[List["Issue"]] = relationship(
+        secondary=issue_tags, back_populates="tags"
+    )
 
 
 class Issue(Base):
     __tablename__ = "issues"
-    id = Column(Integer, primary_key=True)
-    project_issue_id = Column(Integer, nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_issue_id: Mapped[int] = mapped_column()
 
-    title = Column(String(255), nullable=False)
-    description = Column(Text, nullable=True)
+    title: Mapped[str] = mapped_column(String(255))
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-    status_id = Column(Integer, ForeignKey("statuses.id"), nullable=False)
-    creator_id = Column(String, ForeignKey("users.user_id"), nullable=False)
+    status_id: Mapped[int] = mapped_column(ForeignKey("statuses.id"))
+    creator_id: Mapped[str] = mapped_column(ForeignKey("users.user_id"))
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
 
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
-
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
-    closed_at = Column(DateTime, nullable=True)
-
-    project = relationship("Project", back_populates="issues")
-    creator = relationship(
-        "User", foreign_keys=creator_id, back_populates="created_issues"
+    created_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now())
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now()
     )
+    closed_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
 
-    status = relationship("Status")
-    assignees = relationship(
-        "User", secondary=issue_assignees, back_populates="assigned_issues"
+    project: Mapped["Project"] = relationship(back_populates="issues")
+    creator: Mapped["User"] = relationship(
+        foreign_keys=[creator_id], back_populates="created_issues"
     )
-    tags = relationship("Tag", secondary=issue_tags, back_populates="issues")
+    status: Mapped["Status"] = relationship()
+    assignees: Mapped[List["User"]] = relationship(
+        secondary=issue_assignees, back_populates="assigned_issues"
+    )
+    tags: Mapped[List["Tag"]] = relationship(
+        secondary=issue_tags, back_populates="issues"
+    )

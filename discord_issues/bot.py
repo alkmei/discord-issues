@@ -1,14 +1,10 @@
 import os
-import asyncio
 import logging
-import sys
 
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-import cogs
 
-from db.database import init_db
 
 # --- Basic Logging Setup ---
 # This provides more detailed output than print() for debugging.
@@ -18,9 +14,6 @@ logging.basicConfig(level=logging.INFO)
 # This loads the DISCORD_TOKEN from your .env file.
 load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-
-if not DISCORD_TOKEN:
-    raise ValueError("DISCORD_TOKEN not found in .env file. Please set it.")
 
 
 class IssueTrackerBot(commands.Bot):
@@ -41,7 +34,7 @@ class IssueTrackerBot(commands.Bot):
         for filename in os.listdir("./discord_issues/cogs"):
             if filename.endswith(".py") and not filename.startswith("__"):
                 try:
-                    cog_path = f"cogs.{filename[:-3]}"
+                    cog_path = f"discord_issues.cogs.{filename[:-3]}"
                     await self.load_extension(cog_path)
                     logging.info(f"Successfully loaded cog: {cog_path}")
                 except Exception as e:
@@ -55,11 +48,17 @@ class IssueTrackerBot(commands.Bot):
             logging.error(f"Failed to sync application commands: {e}")
 
     async def on_ready(self):
+        if not self.user:
+            logging.error("Bot user is not set. Exiting...")
+            return
         logging.info(f"Logged in as {self.user} (ID: {self.user.id})")
         logging.info("Bot is ready and online!")
 
 
 async def main():
     """Main function to create and run the bot."""
+    if not DISCORD_TOKEN:
+        raise ValueError("DISCORD_TOKEN is not set. Please check your .env file.")
+
     bot = IssueTrackerBot()
     await bot.start(DISCORD_TOKEN)
