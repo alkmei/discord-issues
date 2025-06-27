@@ -1,6 +1,29 @@
+from typing import List
 import discord
 from discord import app_commands
 from discord.ext import commands
+
+from discord_issues.repo.project_repository import ProjectRepository
+from discord_issues.repo.status_repository import StatusRepository
+
+
+async def status_autocomplete(
+    interaction: discord.Interaction, current: str
+) -> List[app_commands.Choice[str]]:
+    project_name = interaction.namespace.project_name
+    if not project_name:
+        return []
+
+    project = ProjectRepository().find_by_name(str(interaction.guild_id), project_name)
+    if not project:
+        return []
+
+    statuses = StatusRepository().find_by_project_id(project.id)
+    return [
+        app_commands.Choice(name=status.name, value=str(status.name))
+        for status in statuses
+        if current.lower() in status.name.lower()
+    ][:25]
 
 
 class StatusCog(commands.Cog):

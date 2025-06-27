@@ -24,10 +24,10 @@ Creates a new issue in the tracker. This is the primary command for reporting bu
 
 **Syntax:** `/issue create <title> [description] [assignee] [tags]`
 
-- **`title`** (Required String): A short, descriptive title for the issue.
-- **`description`** (Optional String): A more detailed explanation of the issue. Users can provide steps to reproduce, context, or any relevant information.
-- **`assignee`** (Optional User): The team member you want to assign the issue to. You can @mention the user here.
-- **`tags`** (Optional String): A comma-separated list of tags to categorize the issue (e.g., "bug, UI, high-priority").
+-   **`title`** (Required String): A short, descriptive title for the issue.
+-   **`description`** (Optional String): A more detailed explanation of the issue. Users can provide steps to reproduce, context, or any relevant information.
+-   **`assignee`** (Optional User): The team member you want to assign the issue to. You can @mention the user here.
+-   **`tags`** (Optional String): A comma-separated list of tags to categorize the issue (e.g., "bug, UI, high-priority").
 
 #### `view`
 
@@ -35,7 +35,7 @@ Displays the full details of a single issue, including its title, description, s
 
 **Syntax**: `/issue view <id>`
 
-- **`id`** (Required Integer): The unique ID number of the issue you want to view.
+-   **`id`** (Required Integer): The unique ID number of the issue you want to view.
 
 #### `list`
 
@@ -43,9 +43,9 @@ Shows a list of all currently open issues. This command includes optional filter
 
 **Syntax**: `/issue list [assignee] [status] [tag]`
 
-- **`assignee`** (Optional User): Filters the list to show only issues assigned to a specific member.
-- **`status`** (Optional String): Filters by status. For example, you could filter for "open", "in-progress", or "resolved".
-- **`tag`** (Optional String): Filters the list to show only issues that include a specific tag.
+-   **`assignee`** (Optional User): Filters the list to show only issues assigned to a specific member.
+-   **`status`** (Optional String): Filters by status. For example, you could filter for "open", "in-progress", or "resolved".
+-   **`tag`** (Optional String): Filters the list to show only issues that include a specific tag.
 
 **Output:** Issues in a tabular form with issue number, title, status, assignees, tags.
 
@@ -55,9 +55,9 @@ Allows a user to modify the details of an existing issue.
 
 **Syntax**: `/issue edit <id> [title] [description]`
 
-- **`id`** (Required Integer): The ID of the issue to be modified.
-- **`title`** (Optional String): A new title for the issue.
-- **`description`** (Optional String): A new description for the issue.
+-   **`id`** (Required Integer): The ID of the issue to be modified.
+-   **`title`** (Optional String): A new title for the issue.
+-   **`description`** (Optional String): A new description for the issue.
 
 #### `assign`
 
@@ -65,8 +65,8 @@ Assigns or re-assigns an issue to a different user.
 
 **Syntax**: `/issue assign <id> <user>`
 
-- **`id`** (Required Integer): The ID of the issue to be assigned.
-- **`user`** (Required User): The member to assign the issue to.
+-   **`id`** (Required Integer): The ID of the issue to be assigned.
+-   **`user`** (Required User): The member to assign the issue to.
 
 #### `unassign`
 
@@ -74,8 +74,8 @@ Remove user from assignment.
 
 **Syntax:** `/issue unassign <id> <user>`
 
-- **`id`** (Required Integer): The ID of the issue.
-- **`user`** (Required User): Member that is assigned to the issue.
+-   **`id`** (Required Integer): The ID of the issue.
+-   **`user`** (Required User): Member that is assigned to the issue.
 
 #### `close`
 
@@ -83,8 +83,8 @@ Closes an issue, typically when the bug has been fixed or the feature has been i
 
 **Syntax**: `/issue close <id> [reason]`
 
-- **`id`** (Required Integer): The ID of the issue to close.
-- **`reason`** (Optional String): A brief comment about the resolution (e.g., "Fixed in patch 1.1.2").
+-   **`id`** (Required Integer): The ID of the issue to close.
+-   **`reason`** (Optional String): A brief comment about the resolution (e.g., "Fixed in patch 1.1.2").
 
 ### Tags
 
@@ -94,7 +94,7 @@ Create a tag.
 
 **Syntax:** `/tag create <name>`
 
-- `name` (Required String): Name of tag.
+-   `name` (Required String): Name of tag.
 
 #### `delete`
 
@@ -102,7 +102,7 @@ Delete a tag. Removes tag from issue if existing.
 
 **Syntax:** `/tag delete <name>`
 
-- `name` (Required String): Name of tag to remove.
+-   `name` (Required String): Name of tag to remove.
 
 #### `list`
 
@@ -118,7 +118,7 @@ Create a new status.
 
 **Syntax:** `/status new <name>`
 
-- `name` (Required String): Name of tag.
+-   `name` (Required String): Name of tag.
 
 #### `delete`
 
@@ -126,9 +126,11 @@ Delete a status. Removes tag from issue if existing.
 
 **Syntax:** `/status delete <name>`
 
-- `name` (Required String): Name of tag to remove.
+-   `name` (Required String): Name of tag to remove.
 
 ## Database Design
+
+> NOTE: Outdated diagram
 
 ```mermaid
 ---
@@ -173,4 +175,4 @@ erDiagram
 
 ```
 
-Guilds and Users are tables to facilitate future additions to their tables (e.g. guilds have specific channels that the bot can post in).
+Guilds and Users are tables to facilitate future additions to their tables (e.g. guilds have specific channels that the bot can post in). Default statuses are: Open, Closed.

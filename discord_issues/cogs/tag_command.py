@@ -4,18 +4,7 @@ from discord import app_commands
 from discord.ext import commands
 from ..repo.project_repository import ProjectRepository
 from ..repo.tag_repository import TagRepository
-
-
-async def project_autocomplete(
-    interaction: discord.Interaction, current: str
-) -> list[app_commands.Choice[str]]:
-    project_repo = ProjectRepository()
-    projects = project_repo.find_by_guild_id(str(interaction.guild_id))
-    return [
-        app_commands.Choice(name=str(project.name), value=str(project.name))
-        for project in projects
-        if current.lower() in project.name.lower()
-    ][:25]
+from .project_command import project_autocomplete
 
 
 async def tag_autocomplete(
@@ -52,7 +41,7 @@ class TagCog(commands.Cog):
 
     tag_group = app_commands.Group(name="tag", description="Commands for managing tags")
 
-    @tag_group.command(name="new")
+    @tag_group.command(name="new", description="Create a new tag")
     @app_commands.autocomplete(project_name=project_autocomplete)
     async def new(
         self, interaction: discord.Interaction, project_name: str, tag_name: str
