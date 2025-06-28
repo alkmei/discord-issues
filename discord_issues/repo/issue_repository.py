@@ -41,8 +41,8 @@ class IssueRepository(BaseRepository[Issue]):
         title: str,
         description: str,
         initial_status: Status,
-        assignees: list[User] = None,
-        tags: list[Tag] = None,
+        assignees: list[User] = [],
+        tags: list[Tag] = [],
     ) -> Issue:
         """
         Creates a new issue and handles all its relationships.

@@ -41,11 +41,11 @@ class IssueTrackerBot(commands.Bot):
                     logging.error(f"Failed to load cog {filename}: {e}")
 
         # Sync slash commands to Discord.
-        # try:
-        #     synced = await self.tree.sync()
-        #     logging.info(f"Synced {len(synced)} application command(s).")
-        # except Exception as e:
-        #     logging.error(f"Failed to sync application commands: {e}")
+        try:
+            synced = await self.tree.sync()
+            logging.info(f"Synced {len(synced)} application command(s).")
+        except Exception as e:
+            logging.error(f"Failed to sync application commands: {e}")
 
     async def on_ready(self):
         if not self.user:

@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Any
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -17,7 +17,7 @@ from .status_command import status_autocomplete
 
 async def issue_autocomplete(
     interaction: discord.Interaction, current: str
-) -> List[app_commands.Choice[int]]:
+) -> List[app_commands.Choice[str]]:
     project_name = interaction.namespace.project_name
     if not project_name:
         return []
@@ -104,15 +104,21 @@ class IssueCog(commands.Cog):
         self.tag_repo = TagRepository()
         self.status_repo = StatusRepository()
 
-    issue_group = app_commands.Group(name="issue", description="Commands for managing issues")
+    issue_group = app_commands.Group(
+        name="issue", description="Commands for managing issues"
+    )
 
     @issue_group.command(name="create", description="Creates a new issue in a project.")
     @app_commands.autocomplete(project_name=project_autocomplete)
     async def create_issue(self, interaction: discord.Interaction, project_name: str):
         """Opens a modal to create a new issue."""
-        project = self.project_repo.find_by_name(str(interaction.guild_id), project_name)
+        project = self.project_repo.find_by_name(
+            str(interaction.guild_id), project_name
+        )
         if not project:
-            await interaction.response.send_message(f"❌ Project '{project_name}' not found.", ephemeral=True)
+            await interaction.response.send_message(
+                f"❌ Project '{project_name}' not found.", ephemeral=True
+            )
             return
 
         creator = self.user_repo.get(str(interaction.user.id))
@@ -120,40 +126,59 @@ class IssueCog(commands.Cog):
             creator = self.user_repo.create(user_id=str(interaction.user.id))
 
         # Find the default "OPEN" status for the project
-        initial_status = next((s for s in project.statuses if s.category == StatusCategory.OPEN), None)
+        initial_status = next(
+            (s for s in project.statuses if s.category == StatusCategory.OPEN), None
+        )
         if not initial_status:
             await interaction.response.send_message(
                 "❌ This project has no default 'OPEN' status configured. "
                 "An administrator must create one with `/status create`.",
-                ephemeral=True
+                ephemeral=True,
             )
             return
 
         modal = IssueCreateModal(self.issue_repo, project, creator, initial_status)
         await interaction.response.send_modal(modal)
 
-    @issue_group.command(name="view", description="Views the details of a specific issue.")
-    @app_commands.autocomplete(project_name=project_autocomplete, issue_id=issue_autocomplete)
-    async def view_issue(self, interaction: discord.Interaction, project_name: str, issue_id: int):
+    @issue_group.command(
+        name="view", description="Views the details of a specific issue."
+    )
+    @app_commands.autocomplete(
+        project_name=project_autocomplete, issue_id=issue_autocomplete
+    )
+    async def view_issue(
+        self, interaction: discord.Interaction, project_name: str, issue_id: int
+    ):
         """Displays a detailed embed for a single issue."""
         await interaction.response.defer()
 
-        project = self.project_repo.find_by_name(str(interaction.guild_id), project_name)
+        project = self.project_repo.find_by_name(
+            str(interaction.guild_id), project_name
+        )
         if not project:
-            await interaction.followup.send(f"❌ Project '{project_name}' not found.", ephemeral=True)
+            await interaction.followup.send(
+                f"❌ Project '{project_name}' not found.", ephemeral=True
+            )
             return
 
         issue = self.issue_repo.find_by_project_issue_id(project.id, issue_id)
         if not issue:
-            await interaction.followup.send(f"❌ Issue #{issue_id} not found in project '{project_name}'.", ephemeral=True)
+            await interaction.followup.send(
+                f"❌ Issue #{issue_id} not found in project '{project_name}'.",
+                ephemeral=True,
+            )
             return
 
-        color = discord.Color.green() if issue.status.category == StatusCategory.CLOSED else discord.Color.red()
+        color = (
+            discord.Color.green()
+            if issue.status.category == StatusCategory.CLOSED
+            else discord.Color.red()
+        )
         embed = discord.Embed(
             title=f"[{project.name}] Issue #{issue.project_issue_id}: {issue.title}",
             description=issue.description or "No description provided.",
             color=color,
-            timestamp=issue.created_at
+            timestamp=issue.created_at,
         )
 
         creator_user = await self.bot.fetch_user(int(issue.creator_id))
@@ -161,7 +186,10 @@ class IssueCog(commands.Cog):
         embed.add_field(name="Status", value=f"`{issue.status.name}`", inline=True)
         embed.add_field(name="Creator", value=creator_user.mention, inline=True)
 
-        assignees_str = ", ".join([f"<@{assignee.user_id}>" for assignee in issue.assignees]) or "None"
+        assignees_str = (
+            ", ".join([f"<@{assignee.user_id}>" for assignee in issue.assignees])
+            or "None"
+        )
         embed.add_field(name="Assignees", value=assignees_str, inline=False)
 
         tags_str = ", ".join([f"`{tag.name}`" for tag in issue.tags]) or "None"
@@ -173,44 +201,78 @@ class IssueCog(commands.Cog):
         await interaction.followup.send(embed=embed)
 
     @issue_group.command(name="assign", description="Assigns a user to an issue.")
-    @app_commands.autocomplete(project_name=project_autocomplete, issue_id=issue_autocomplete)
-    async def assign_issue(self, interaction: discord.Interaction, project_name: str, issue_id: int, user: discord.User):
+    @app_commands.autocomplete(
+        project_name=project_autocomplete, issue_id=issue_autocomplete
+    )
+    async def assign_issue(
+        self,
+        interaction: discord.Interaction,
+        project_name: str,
+        issue_id: int,
+        user: discord.User,
+    ):
         """Assigns a user to an issue."""
         await interaction.response.defer(ephemeral=True)
 
-        project = self.project_repo.find_by_name(str(interaction.guild_id), project_name)
+        project = self.project_repo.find_by_name(
+            str(interaction.guild_id), project_name
+        )
         if not project:
-            return await interaction.followup.send(f"❌ Project '{project_name}' not found.")
+            return await interaction.followup.send(
+                f"❌ Project '{project_name}' not found."
+            )
 
         issue = self.issue_repo.find_by_project_issue_id(project.id, issue_id)
         if not issue:
             return await interaction.followup.send(f"❌ Issue #{issue_id} not found.")
 
         # Get or create the user in our database
-        db_user = self.user_repo.get_by_user_id(str(user.id))
+        db_user = self.user_repo.get(str(user.id))
         if not db_user:
             db_user = self.user_repo.create(user_id=str(user.id))
 
         if db_user in issue.assignees:
-            return await interaction.followup.send(f"{user.mention} is already assigned to issue #{issue.project_issue_id}.")
+            return await interaction.followup.send(
+                f"{user.mention} is already assigned to issue #{issue.project_issue_id}."
+            )
 
         with self.issue_repo.session_factory() as session:
             with session.begin():
                 # Re-fetch the issue within the session to modify its relationships
                 session_issue = session.get(self.issue_repo.model, issue.id)
+                if not session_issue:
+                    return await interaction.followup.send(
+                        f"❌ Issue #{issue_id} not found in the database."
+                    )
                 session_issue.assignees.append(db_user)
 
-        await interaction.followup.send(f"✅ Assigned {user.mention} to issue #{issue.project_issue_id}.")
+        await interaction.followup.send(
+            f"✅ Assigned {user.mention} to issue #{issue.project_issue_id}."
+        )
 
     @issue_group.command(name="status", description="Changes the status of an issue.")
-    @app_commands.autocomplete(project_name=project_autocomplete, issue_id=issue_autocomplete, status_name=status_autocomplete)
-    async def status_issue(self, interaction: discord.Interaction, project_name: str, issue_id: int, status_name: str):
+    @app_commands.autocomplete(
+        project_name=project_autocomplete,
+        issue_id=issue_autocomplete,
+        status_name=status_autocomplete,
+    )
+    async def status_issue(
+        self,
+        interaction: discord.Interaction,
+        project_name: str,
+        issue_id: int,
+        status_name: str,
+    ):
         """Changes an issue's status."""
         await interaction.response.defer(ephemeral=True)
 
-        project = self.project_repo.find_by_name(str(interaction.guild_id), project_name)
+        project = self.project_repo.find_by_name(
+            str(interaction.guild_id), project_name
+        )
         if not project:
-            return await interaction.followup.send(f"❌ Project '{project_name}' not found.")
+            return await interaction.followup.send(
+                f"❌ Project '{project_name}' not found."
+            )
 
         issue = self.issue_repo.find_by_project_issue_id(project.id, issue_id)
         if not issue:
@@ -218,9 +280,11 @@ class IssueCog(commands.Cog):
 
         new_status = self.status_repo.find_by_name(project.id, status_name)
         if not new_status:
-            return await interaction.followup.send(f"❌ Status '{status_name}' not found.")
+            return await interaction.followup.send(
+                f"❌ Status '{status_name}' not found."
+            )
 
-        update_data = {"status_id": new_status.id}
+        update_data: dict[str, Any] = {"status_id": new_status.id}
         # If the new status is a closing status, record the close time
         if new_status.category == StatusCategory.CLOSED and not issue.closed_at:
             update_data["closed_at"] = discord.utils.utcnow()
@@ -230,7 +294,10 @@ class IssueCog(commands.Cog):
 
         self.issue_repo.update(pk=issue.id, **update_data)
 
-        await interaction.followup.send(f"✅ Issue #{issue.project_issue_id} status changed to **{status_name}**.")
+        await interaction.followup.send(
+            f"✅ Issue #{issue.project_issue_id} status changed to **{status_name}**."
+        )
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(IssueCog(bot))
