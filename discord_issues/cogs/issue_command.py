@@ -9,12 +9,9 @@ from ..repo.issue_repository import IssueRepository
 from ..repo.project_repository import ProjectRepository
 from ..repo.tag_repository import TagRepository
 from ..repo.user_repository import UserRepository
-
-# Autocomplete functions can be shared, assuming project_command is in the same directory
 from .project_command import project_autocomplete
 
 
-# --- Autocomplete Functions ---
 async def issue_autocomplete(
     interaction: discord.Interaction, current: str
 ) -> List[app_commands.Choice[str]]:
@@ -106,7 +103,7 @@ class IssueCog(commands.Cog):
         name="issue", description="Commands for managing issues"
     )
 
-    @issue_group.command(name="create", description="Creates a new issue in a project.")
+    @issue_group.command(name="new", description="Creates a new issue in a project.")
     @app_commands.autocomplete(project_name=project_autocomplete)
     async def create_issue(self, interaction: discord.Interaction, project_name: str):
         """Opens a modal to create a new issue."""
