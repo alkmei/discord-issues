@@ -30,7 +30,7 @@ uv sync
 3. Initialize the database with alembic.
 
 ```shell
-alembic revision -m "initial"
+alembic revision --autogenerate -m "initial"
 alembic upgrade head
 ```
 
