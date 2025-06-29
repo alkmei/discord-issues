@@ -4,17 +4,17 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from ..db.models import IssueStatus
 from ..repo.issue_repository import IssueRepository
 from ..repo.project_repository import ProjectRepository
-from ..repo.status_repository import StatusRepository
 from ..repo.tag_repository import TagRepository
 from ..repo.user_repository import UserRepository
-from ..db.models import StatusCategory  # Import the enum
 
+# Autocomplete functions can be shared, assuming project_command is in the same directory
 from .project_command import project_autocomplete
-from .status_command import status_autocomplete
 
 
+# --- Autocomplete Functions ---
 async def issue_autocomplete(
     interaction: discord.Interaction, current: str
 ) -> List[app_commands.Choice[str]]:
@@ -27,7 +27,7 @@ async def issue_autocomplete(
     if not project:
         return []
 
-    # TODO: Use a repository method to fetch issues
+    # A repository method for searching would be more efficient here in a larger app
     with IssueRepository().session_factory() as session:
         issues = (
             session.query(IssueRepository().model)
@@ -41,21 +41,22 @@ async def issue_autocomplete(
     for issue in issues:
         choice_name = f"#{issue.project_issue_id}: {issue.title}"
         if current.lower() in choice_name.lower():
+            # The value must be a string for discord.py's autocomplete type hints
             choices.append(
                 app_commands.Choice(
-                    name=choice_name[:100], value=issue.project_issue_id
+                    name=choice_name[:100], value=str(issue.project_issue_id)
                 )
             )
     return choices
 
 
+# --- MODIFIED: Simplified Issue Creation Modal ---
 class IssueCreateModal(discord.ui.Modal, title="Create New Issue"):
-    def __init__(self, issue_repo: IssueRepository, project, creator, initial_status):
+    def __init__(self, issue_repo: IssueRepository, project, creator):
         super().__init__()
         self.issue_repo = issue_repo
         self.project = project
         self.creator = creator
-        self.initial_status = initial_status
 
     title_input = discord.ui.TextInput(
         label="Issue Title",
@@ -65,7 +66,7 @@ class IssueCreateModal(discord.ui.Modal, title="Create New Issue"):
     )
     description_input = discord.ui.TextInput(
         label="Description",
-        placeholder="Provide a detailed description of the issue. Include steps to reproduce if applicable.",
+        placeholder="Provide a detailed description of the issue.",
         style=discord.TextStyle.paragraph,
         required=False,
     )
@@ -78,7 +79,6 @@ class IssueCreateModal(discord.ui.Modal, title="Create New Issue"):
                 creator=self.creator,
                 title=self.title_input.value,
                 description=self.description_input.value,
-                initial_status=self.initial_status,
             )
             embed = discord.Embed(
                 title=f"✅ Issue Created: #{issue.project_issue_id}",
@@ -102,7 +102,6 @@ class IssueCog(commands.Cog):
         self.project_repo = ProjectRepository()
         self.user_repo = UserRepository()
         self.tag_repo = TagRepository()
-        self.status_repo = StatusRepository()
 
     issue_group = app_commands.Group(
         name="issue", description="Commands for managing issues"
@@ -125,19 +124,7 @@ class IssueCog(commands.Cog):
         if not creator:
             creator = self.user_repo.create(user_id=str(interaction.user.id))
 
-        # Find the default "OPEN" status for the project
-        initial_status = next(
-            (s for s in project.statuses if s.category == StatusCategory.OPEN), None
-        )
-        if not initial_status:
-            await interaction.response.send_message(
-                "❌ This project has no default 'OPEN' status configured. "
-                "An administrator must create one with `/status create`.",
-                ephemeral=True,
-            )
-            return
-
-        modal = IssueCreateModal(self.issue_repo, project, creator, initial_status)
+        modal = IssueCreateModal(self.issue_repo, project, creator)
         await interaction.response.send_modal(modal)
 
     @issue_group.command(
@@ -171,7 +158,7 @@ class IssueCog(commands.Cog):
 
         color = (
             discord.Color.green()
-            if issue.status.category == StatusCategory.CLOSED
+            if issue.status == IssueStatus.CLOSED
             else discord.Color.red()
         )
         embed = discord.Embed(
@@ -183,7 +170,7 @@ class IssueCog(commands.Cog):
 
         creator_user = await self.bot.fetch_user(int(issue.creator_id))
 
-        embed.add_field(name="Status", value=f"`{issue.status.name}`", inline=True)
+        embed.add_field(name="Status", value=f"`{issue.status.value}`", inline=True)
         embed.add_field(name="Creator", value=creator_user.mention, inline=True)
 
         assignees_str = (
@@ -195,7 +182,7 @@ class IssueCog(commands.Cog):
         tags_str = ", ".join([f"`{tag.name}`" for tag in issue.tags]) or "None"
         embed.add_field(name="Tags", value=tags_str, inline=False)
 
-        embed.set_footer(text=f"Last updated")
+        embed.set_footer(text="Last updated")
         embed.timestamp = issue.updated_at
 
         await interaction.followup.send(embed=embed)
@@ -211,9 +198,8 @@ class IssueCog(commands.Cog):
         issue_id: int,
         user: discord.User,
     ):
-        """Assigns a user to an issue."""
+        # ... (This command's logic is unchanged) ...
         await interaction.response.defer(ephemeral=True)
-
         project = self.project_repo.find_by_name(
             str(interaction.guild_id), project_name
         )
@@ -221,49 +207,40 @@ class IssueCog(commands.Cog):
             return await interaction.followup.send(
                 f"❌ Project '{project_name}' not found."
             )
-
         issue = self.issue_repo.find_by_project_issue_id(project.id, issue_id)
         if not issue:
             return await interaction.followup.send(f"❌ Issue #{issue_id} not found.")
-
-        # Get or create the user in our database
         db_user = self.user_repo.get(str(user.id))
         if not db_user:
             db_user = self.user_repo.create(user_id=str(user.id))
-
         if db_user in issue.assignees:
             return await interaction.followup.send(
                 f"{user.mention} is already assigned to issue #{issue.project_issue_id}."
             )
-
         with self.issue_repo.session_factory() as session:
             with session.begin():
-                # Re-fetch the issue within the session to modify its relationships
                 session_issue = session.get(self.issue_repo.model, issue.id)
                 if not session_issue:
                     return await interaction.followup.send(
                         f"❌ Issue #{issue_id} not found in the database."
                     )
                 session_issue.assignees.append(db_user)
-
         await interaction.followup.send(
             f"✅ Assigned {user.mention} to issue #{issue.project_issue_id}."
         )
 
     @issue_group.command(name="status", description="Changes the status of an issue.")
     @app_commands.autocomplete(
-        project_name=project_autocomplete,
-        issue_id=issue_autocomplete,
-        status_name=status_autocomplete,
+        project_name=project_autocomplete, issue_id=issue_autocomplete
     )
     async def status_issue(
         self,
         interaction: discord.Interaction,
         project_name: str,
         issue_id: int,
-        status_name: str,
+        new_status: IssueStatus,
     ):
-        """Changes an issue's status."""
+        """Changes an issue's status using a hardcoded enum."""
         await interaction.response.defer(ephemeral=True)
 
         project = self.project_repo.find_by_name(
@@ -278,24 +255,20 @@ class IssueCog(commands.Cog):
         if not issue:
             return await interaction.followup.send(f"❌ Issue #{issue_id} not found.")
 
-        new_status = self.status_repo.find_by_name(project.id, status_name)
-        if not new_status:
-            return await interaction.followup.send(
-                f"❌ Status '{status_name}' not found."
-            )
+        # The new_status is passed directly as an enum member by discord.py
+        update_data: dict[str, Any] = {"status": new_status}
 
-        update_data: dict[str, Any] = {"status_id": new_status.id}
-        # If the new status is a closing status, record the close time
-        if new_status.category == StatusCategory.CLOSED and not issue.closed_at:
+        # If the new status is CLOSED and the issue isn't already closed, record the time.
+        if new_status == IssueStatus.CLOSED and not issue.closed_at:
             update_data["closed_at"] = discord.utils.utcnow()
-        # If we're reopening an issue, clear the close time
-        elif new_status.category == StatusCategory.OPEN and issue.closed_at:
+        # If the new status is NOT CLOSED but the issue was previously closed, clear the time.
+        elif new_status != IssueStatus.CLOSED and issue.closed_at:
             update_data["closed_at"] = None
 
         self.issue_repo.update(pk=issue.id, **update_data)
 
         await interaction.followup.send(
-            f"✅ Issue #{issue.project_issue_id} status changed to **{status_name}**."
+            f"✅ Issue #{issue.project_issue_id} status changed to **{new_status.value}**."
         )
 
 

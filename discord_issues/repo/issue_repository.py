@@ -1,6 +1,6 @@
 from typing import Optional
 from sqlalchemy import func
-from discord_issues.db.models import Issue, Project, Tag, User, Status
+from discord_issues.db.models import Issue, Project, Tag, User, IssueStatus
 from .base_repository import BaseRepository
 
 
@@ -40,7 +40,6 @@ class IssueRepository(BaseRepository[Issue]):
         creator: User,
         title: str,
         description: str,
-        initial_status: Status,
         assignees: list[User] = [],
         tags: list[Tag] = [],
     ) -> Issue:
@@ -57,7 +56,7 @@ class IssueRepository(BaseRepository[Issue]):
                     description=description,
                     project_id=project.id,
                     creator_id=creator.user_id,
-                    status_id=initial_status.id,
+                    status=IssueStatus.OPEN,
                 )
 
                 if assignees:

@@ -154,7 +154,7 @@ class ProjectCog(commands.Cog):
         )
         for project in projects:
             desc = project.description or "No description provided."
-            embed.add_field(name=f"📂 {project.name}", value=f"``````", inline=False)
+            embed.add_field(name=f"📂 {project.name}", value=f"{desc}", inline=False)
 
         await interaction.followup.send(embed=embed)
 
