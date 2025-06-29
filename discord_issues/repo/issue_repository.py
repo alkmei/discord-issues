@@ -1,5 +1,6 @@
 from typing import Optional
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 from discord_issues.db.models import Issue, Project, Tag, User, IssueStatus
 from .base_repository import BaseRepository
 
@@ -30,6 +31,11 @@ class IssueRepository(BaseRepository[Issue]):
         with self.session_factory() as session:
             return (
                 session.query(self.model)
+                .options(
+                    joinedload(self.model.assignees),
+                    joinedload(self.model.tags),
+                    joinedload(self.model.creator),
+                )
                 .filter_by(project_id=project_id, project_issue_id=project_issue_id)
                 .first()
             )

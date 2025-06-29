@@ -11,7 +11,7 @@ from sqlalchemy import (
     String,
     Table,
     Text,
-    func,
+    DateTime,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -115,11 +115,19 @@ class Issue(Base):
     creator_id: Mapped[str] = mapped_column(ForeignKey("users.user_id"))
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
 
-    created_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now())
-    updated_at: Mapped[datetime.datetime] = mapped_column(
-        server_default=func.now(), onupdate=func.now()
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.datetime.now(datetime.timezone.utc),
     )
-    closed_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        onupdate=lambda: datetime.datetime.now(datetime.timezone.utc),
+    )
+    closed_at: Mapped[Optional[datetime.datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
 
     project: Mapped["Project"] = relationship(back_populates="issues")
     creator: Mapped["User"] = relationship(

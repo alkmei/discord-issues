@@ -50,7 +50,6 @@ async def issue_autocomplete(
     return choices
 
 
-# --- MODIFIED: Simplified Issue Creation Modal ---
 class IssueCreateModal(discord.ui.Modal, title="Create New Issue"):
     def __init__(self, issue_repo: IssueRepository, project, creator):
         super().__init__()
@@ -165,7 +164,6 @@ class IssueCog(commands.Cog):
             title=f"[{project.name}] Issue #{issue.project_issue_id}: {issue.title}",
             description=issue.description or "No description provided.",
             color=color,
-            timestamp=issue.created_at,
         )
 
         creator_user = await self.bot.fetch_user(int(issue.creator_id))
@@ -182,8 +180,12 @@ class IssueCog(commands.Cog):
         tags_str = ", ".join([f"`{tag.name}`" for tag in issue.tags]) or "None"
         embed.add_field(name="Tags", value=tags_str, inline=False)
 
-        embed.set_footer(text="Last updated")
-        embed.timestamp = issue.updated_at
+        created_ts = int(issue.created_at.timestamp())
+        updated_ts = int(issue.updated_at.timestamp())
+        print(f"Created at: {created_ts}, Updated at: {updated_ts}")
+
+        embed.add_field(name="Created", value=f"<t:{created_ts}:F>", inline=True)
+        embed.add_field(name="Updated", value=f"<t:{updated_ts}:F>", inline=True)
 
         await interaction.followup.send(embed=embed)
 
